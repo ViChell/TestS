@@ -1,9 +1,7 @@
-data/
-node_modules/
-# Configs with database passwords must never be committed (the repo is public)
-.env
-config.php
-wp-config.php
-configuration.php
-*.sql
-*.sql.gz
+.sessions/
+uploads/products/*
+uploads/cases/*
+uploads/orders/*
+!uploads/products/.gitkeep
+!uploads/cases/.gitkeep
+!uploads/orders/.gitkeep

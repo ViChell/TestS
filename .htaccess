@@ -1,0 +1,93 @@
+Options -Indexes
+DirectoryIndex index.php
+
+RewriteEngine On
+
+ErrorDocument 404 /404.php
+
+RewriteRule ^(?:includes|admin/includes)/ - [F,L]
+RewriteRule ^\.sessions/ - [F,L]
+RewriteRule ^config\.php$ - [F,L]
+RewriteRule ^_spec\.txt$ - [F,L]
+
+RewriteCond %{REQUEST_METHOD} !POST
+RewriteRule ^handlers/ - [F,L]
+
+RewriteCond %{REQUEST_METHOD} !POST
+RewriteRule ^admin/handlers/ - [F,L]
+
+RewriteCond %{REQUEST_URI} !^/assets/
+RewriteCond %{REQUEST_URI} !^/uploads/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^patches/?$ patches.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^patches/([a-zA-Z0-9-]+)/?$ product.php?slug=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^name-tapes/?$ name-tapes.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^name-tapes/([a-zA-Z0-9-]+)/?$ product.php?slug=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^3d-products/?$ 3d-products.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^3d-products/([a-zA-Z0-9-]+)/?$ product.php?slug=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^buy/?$ buy.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^buy/([a-zA-Z0-9-]+)/?$ buy.php?slug=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^custom-order/?$ custom-order.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^how-to-order/?$ how-to-order.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^about/?$ about.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^payment-delivery/?$ payment-delivery.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^faq/?$ faq.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^contacts/?$ contacts.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^privacy/?$ privacy.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cases/([a-zA-Z0-9-]+)/?$ case.php?slug=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^admin/?$ admin/index.php [L,QSA]
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|svg|jpg|jpeg|png|webp)$">
+        Header set Cache-Control "public, max-age=0"
+    </FilesMatch>
+</IfModule>

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /uploads/orders/
+
+Sitemap: https://patchlab.lga2011.com.ua/sitemap.xml
