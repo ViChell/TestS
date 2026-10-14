@@ -1,0 +1,44 @@
+name: Deploy to patchlab.lga2011.com.ua
+
+on:
+  push:
+    branches: [main, claude/busy-johnson-cuni9f]
+  workflow_dispatch:
+
+concurrency: deploy-production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      # data/ (players and scores) lives only on the server and is never overwritten
+      - name: Upload files
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          rsync -az --delete \
+            --exclude '.git/' --exclude '.github/' --exclude 'data/' --exclude 'node_modules/' \
+            -e "ssh -i ~/.ssh/id_deploy" \
+            ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
+
+      - name: Restart app
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          RESTART_CMD: ${{ secrets.DEPLOY_RESTART_CMD }}
+        if: ${{ env.RESTART_CMD != '' }}
+        run: ssh -i ~/.ssh/id_deploy "$SSH_USER@$SSH_HOST" "$RESTART_CMD"
