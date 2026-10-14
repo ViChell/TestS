@@ -23,15 +23,17 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
-      # data/ (players and scores) lives only on the server and is never overwritten
+      # No --delete: files that exist only on the server (configs with DB passwords,
+      # user uploads, data/) are never removed or overwritten by a deploy
       - name: Upload files
         env:
           SSH_HOST: ${{ secrets.DEPLOY_HOST }}
           SSH_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          rsync -az --delete \
+          rsync -az \
             --exclude '.git/' --exclude '.github/' --exclude 'data/' --exclude 'node_modules/' \
+            --exclude-from .deployignore \
             -e "ssh -i ~/.ssh/id_deploy" \
             ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
 

@@ -22,7 +22,7 @@ npm start            # http://localhost:3000
 
 ## Деплой на patchlab.lga2011.com.ua
 
-Кожен push у `main` (або запуск вручну у вкладці Actions) викладає сайт на хостинг adm.tools через SSH (`.github/workflows/deploy.yml`). Тека `data/` на сервері не чіпається.
+Кожен push у `main` (або запуск вручну у вкладці Actions) викладає сайт на хостинг adm.tools через SSH (`.github/workflows/deploy.yml`). Деплой лише додає й оновлює файли, нічого не видаляє. Файли зі списку `.deployignore` (конфіги з паролями до бази, завантаження користувачів) на сервері не перезаписуються.
 
 Потрібні секрети репозиторію (Settings → Secrets and variables → Actions):
 

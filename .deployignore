@@ -1,0 +1,8 @@
+# Server-only files: never uploaded from the repo, so a deploy can't overwrite them
+.env
+config.php
+wp-config.php
+configuration.php
+wp-content/uploads/
+upload/
+uploads/
