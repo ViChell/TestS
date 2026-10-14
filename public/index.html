@@ -202,7 +202,7 @@ ol.top li:nth-child(-n+3) .pos { color: var(--sun); }
 
   async function loadTop() {
     try {
-      const { top } = await api('/api/leaderboard');
+      const { top } = await api('api.php?a=leaderboard');
       const ol = $('top');
       ol.replaceChildren(...top.map((r, i) => {
         const li = document.createElement('li');
@@ -235,7 +235,7 @@ ol.top li:nth-child(-n+3) .pos { color: var(--sun); }
     e.preventDefault();
     const btn = $('authBtn'); btn.disabled = true;
     try {
-      const { user } = await api(mode === 'login' ? '/api/login' : '/api/register', { name: $('name').value, password: $('password').value });
+      const { user } = await api(mode === 'login' ? 'api.php?a=login' : 'api.php?a=register', { name: $('name').value, password: $('password').value });
       me = user; $('password').value = '';
       $('scoreMsg').className = 'msg ok';
       $('scoreMsg').textContent = mode === 'login' ? 'З поверненням!' : 'Готово. Ваші рекорди тепер зберігаються.';
@@ -246,14 +246,14 @@ ol.top li:nth-child(-n+3) .pos { color: var(--sun); }
   });
 
   $('logoutBtn').onclick = async () => {
-    try { await api('/api/logout', {}); } catch {}
+    try { await api('api.php?a=logout', {}); } catch {}
     me = null; best = 0; setMode('login'); renderMe(); loadTop();
   };
 
   async function submitScore(score) {
     if (!me) return false;
     try {
-      const r = await api('/api/score', { score });
+      const r = await api('api.php?a=score', { score });
       me = r.user; renderMe();
       $('scoreMsg').className = 'msg ok';
       $('scoreMsg').textContent = r.record ? `Новий особистий рекорд: ${score}!` : `Результат ${score} збережено.`;
@@ -416,7 +416,7 @@ ol.top li:nth-child(-n+3) .pos { color: var(--sun); }
 
   reset();
   requestAnimationFrame(loop);
-  api('/api/me').then(r => { me = r.user; renderMe(); loadTop(); }).catch(() => loadTop());
+  api('api.php?a=me').then(r => { me = r.user; renderMe(); loadTop(); }).catch(() => loadTop());
   setInterval(loadTop, 30000);
 })();
 </script>

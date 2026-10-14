@@ -1,2 +1,1 @@
-data/
-node_modules/
+/public/data/db.php
