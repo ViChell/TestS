@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Змійка на городі</title>
+<meta name="description" content="Збирай насіння соняшника, реєструйся й потрапляй до таблиці рекордів.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23f2c12e'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%233a3326'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Golos+Text:wght@400;600&display=swap">
+<style>
+/* Layout: game plot on the left, account + leaderboard column on the right; stacks on phones. Single dark "night garden" look. */
+:root {
+  --soil: #1c1a14;
+  --soil-2: #25221a;
+  --row: #2e2a1f;
+  --leaf: #7fae4a;
+  --sun: #f2c12e;
+  --seed: #3a3326;
+  --ink: #efe8d4;
+  --muted: #a69d84;
+  --danger: #e2674a;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: var(--soil);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-bottom, 0px));
+}
+.page { max-width: 860px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 480px) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 760px) { .page { grid-template-columns: minmax(0, 1fr); max-width: 480px; } }
+.game { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 1.6rem; line-height: 1.05; margin: 0; text-wrap: balance; }
+h1 span { color: var(--sun); }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1rem; margin: 0; letter-spacing: .02em; }
+.stats { display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
+.stat { display: flex; flex-direction: column; align-items: flex-end; }
+.stat b { font-family: var(--display); font-size: 1.3rem; font-weight: 600; }
+.stat small, .label { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.board { position: relative; width: 100%; max-width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 2px var(--row); touch-action: none; }
+canvas { display: block; width: 100%; height: 100%; }
+.overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: color-mix(in srgb, var(--soil) 78%, transparent); text-align: center; padding: 20px;
+}
+.overlay h2 { font-weight: 800; font-size: 1.4rem; text-wrap: balance; }
+.overlay p { margin: 0; color: var(--muted); max-width: 30ch; line-height: 1.45; }
+button {
+  font-family: var(--display); font-weight: 600; font-size: .95rem;
+  background: var(--sun); color: var(--soil); border: 0; border-radius: 999px; padding: 12px 26px; cursor: pointer;
+}
+button:disabled { opacity: .6; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+button.ghost { background: transparent; color: var(--muted); padding: 6px 10px; font-family: var(--body); font-size: .85rem; }
+button.ghost:hover { color: var(--ink); }
+.pad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(2, 56px); gap: 8px; justify-content: center; }
+.pad button { padding: 0; border-radius: 12px; background: var(--soil-2); color: var(--ink); font-size: 1.3rem; box-shadow: inset 0 0 0 1px var(--row); }
+.pad button:active { background: var(--row); }
+.pad .up { grid-column: 2; }
+.pad .left { grid-column: 1; grid-row: 2; }
+.pad .down { grid-column: 2; grid-row: 2; }
+.pad .right { grid-column: 3; grid-row: 2; }
+@media (hover: hover) and (pointer: fine) { .pad { display: none; } }
+.hint { color: var(--muted); font-size: .85rem; text-align: center; margin: 0; line-height: 1.5; }
+kbd { font-family: var(--body); background: var(--soil-2); border: 1px solid var(--row); border-radius: 4px; padding: 1px 6px; color: var(--ink); }
+
+aside { display: flex; flex-direction: column; gap: 24px; min-width: 0; padding-top: 6px; }
+.panel { display: flex; flex-direction: column; gap: 12px; }
+.tabs { display: flex; gap: 4px; background: var(--soil-2); border-radius: 999px; padding: 4px; align-self: flex-start; }
+.tabs button { background: transparent; color: var(--muted); padding: 7px 16px; font-size: .8rem; }
+.tabs button[aria-selected="true"] { background: var(--row); color: var(--ink); }
+form { display: flex; flex-direction: column; gap: 10px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
+input {
+  font: inherit; color: var(--ink); background: var(--soil-2); border: 1px solid var(--row); border-radius: 8px; padding: 10px 12px; width: 100%;
+}
+.msg { margin: 0; font-size: .85rem; line-height: 1.4; min-height: 1.2em; }
+.msg.err { color: var(--danger); }
+.msg.ok { color: var(--leaf); }
+.me { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.me strong { font-family: var(--display); font-weight: 600; font-size: 1.05rem; overflow-wrap: anywhere; }
+.me p { margin: 2px 0 0; color: var(--muted); font-size: .85rem; }
+
+ol.top { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+ol.top li { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--row); }
+ol.top li .pos { color: var(--muted); font-size: .85rem; }
+ol.top li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.top li .pts { font-family: var(--display); font-weight: 600; color: var(--sun); }
+ol.top li.you .name { color: var(--sun); font-weight: 600; }
+ol.top li:nth-child(-n+3) .pos { color: var(--sun); }
+.empty { color: var(--muted); margin: 0; font-size: .9rem; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <main class="game">
+    <header>
+      <h1>Змійка<br>на <span>городі</span></h1>
+      <div class="stats">
+        <div class="stat"><b id="score">0</b><small>Насінин</small></div>
+        <div class="stat"><b id="best">0</b><small>Твій рекорд</small></div>
+      </div>
+    </header>
+
+    <div class="board" id="board">
+      <canvas id="cv" width="480" height="480"></canvas>
+      <div class="overlay" id="overlay">
+        <h2 id="ovTitle">Збери насіння соняшника</h2>
+        <p id="ovText">Кожна насінина подовжує змійку й трохи її пришвидшує. Не врізайся в паркан і власний хвіст.</p>
+        <button id="startBtn" type="button">Почати</button>
+      </div>
+    </div>
+
+    <div class="pad" aria-label="Керування">
+      <button class="up" type="button" data-dir="up" aria-label="Вгору">↑</button>
+      <button class="left" type="button" data-dir="left" aria-label="Ліворуч">←</button>
+      <button class="down" type="button" data-dir="down" aria-label="Вниз">↓</button>
+      <button class="right" type="button" data-dir="right" aria-label="Праворуч">→</button>
+    </div>
+    <p class="hint">Стрілки або <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>Пробіл</kbd> — пауза · на телефоні свайпай по полю</p>
+  </main>
+
+  <aside>
+    <section class="panel" id="authPanel">
+      <h2>Гравець</h2>
+      <div id="guest">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" id="tabLogin" aria-selected="true">Вхід</button>
+          <button type="button" role="tab" id="tabReg" aria-selected="false">Реєстрація</button>
+        </div>
+        <form id="authForm" novalidate>
+          <label>Нік<input id="name" name="name" autocomplete="username" maxlength="20" required></label>
+          <label>Пароль<input id="password" name="password" type="password" autocomplete="current-password" minlength="6" required></label>
+          <button type="submit" id="authBtn">Увійти</button>
+          <p class="msg" id="authMsg" role="status">Увійдіть, щоб ваші рекорди потрапили до таблиці.</p>
+        </form>
+      </div>
+      <div id="member" hidden>
+        <div class="me">
+          <div>
+            <strong id="meName"></strong>
+            <p id="meStats"></p>
+          </div>
+          <button type="button" class="ghost" id="logoutBtn">Вийти</button>
+        </div>
+        <p class="msg" id="scoreMsg" role="status"></p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Таблиця рекордів</h2>
+      <ol class="top" id="top"></ol>
+      <p class="empty" id="topEmpty" hidden>Рекордів ще немає. Зареєструйтеся й будьте першим.</p>
+    </section>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  // ——— акаунт і таблиця рекордів ———
+  let me = null;
+  let mode = 'login';
+
+  async function api(path, body) {
+    const res = await fetch(path, body === undefined ? {} : {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Сервер не відповідає. Спробуйте ще раз.');
+    return data;
+  }
+
+  function plural(n, one, few, many) {
+    const m10 = n % 10, m100 = n % 100;
+    return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
+  }
+
+  function renderMe() {
+    $('guest').hidden = !!me;
+    $('member').hidden = !me;
+    if (me) {
+      $('meName').textContent = me.name;
+      $('meStats').textContent = `Рекорд: ${me.best} · ${me.games} ${plural(me.games, 'гра', 'гри', 'ігор')}`;
+      best = Math.max(best, me.best);
+    }
+    $('best').textContent = best;
+  }
+
+  async function loadTop() {
+    try {
+      const { top } = await api('/api/leaderboard');
+      const ol = $('top');
+      ol.replaceChildren(...top.map((r, i) => {
+        const li = document.createElement('li');
+        if (me && r.name === me.name) li.className = 'you';
+        const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = i + 1;
+        const name = document.createElement('span'); name.className = 'name'; name.textContent = r.name;
+        const pts = document.createElement('span'); pts.className = 'pts'; pts.textContent = r.best;
+        li.append(pos, name, pts);
+        return li;
+      }));
+      $('topEmpty').hidden = top.length > 0;
+    } catch { /* таблиця просто не оновиться */ }
+  }
+
+  function setMode(m) {
+    mode = m;
+    $('tabLogin').setAttribute('aria-selected', m === 'login');
+    $('tabReg').setAttribute('aria-selected', m === 'register');
+    $('authBtn').textContent = m === 'login' ? 'Увійти' : 'Зареєструватися';
+    $('password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+    $('authMsg').className = 'msg';
+    $('authMsg').textContent = m === 'login'
+      ? 'Увійдіть, щоб ваші рекорди потрапили до таблиці.'
+      : 'Нік від 3 до 20 символів, пароль щонайменше з 6.';
+  }
+  $('tabLogin').onclick = () => setMode('login');
+  $('tabReg').onclick = () => setMode('register');
+
+  $('authForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = $('authBtn'); btn.disabled = true;
+    try {
+      const { user } = await api(mode === 'login' ? '/api/login' : '/api/register', { name: $('name').value, password: $('password').value });
+      me = user; $('password').value = '';
+      $('scoreMsg').className = 'msg ok';
+      $('scoreMsg').textContent = mode === 'login' ? 'З поверненням!' : 'Готово. Ваші рекорди тепер зберігаються.';
+      renderMe(); loadTop();
+    } catch (err) {
+      $('authMsg').className = 'msg err'; $('authMsg').textContent = err.message;
+    } finally { btn.disabled = false; }
+  });
+
+  $('logoutBtn').onclick = async () => {
+    try { await api('/api/logout', {}); } catch {}
+    me = null; best = 0; setMode('login'); renderMe(); loadTop();
+  };
+
+  async function submitScore(score) {
+    if (!me) return false;
+    try {
+      const r = await api('/api/score', { score });
+      me = r.user; renderMe();
+      $('scoreMsg').className = 'msg ok';
+      $('scoreMsg').textContent = r.record ? `Новий особистий рекорд: ${score}!` : `Результат ${score} збережено.`;
+      loadTop();
+      return r.record;
+    } catch (err) {
+      $('scoreMsg').className = 'msg err'; $('scoreMsg').textContent = err.message;
+      return false;
+    }
+  }
+
+  // ——— гра ———
+  const N = 20;
+  const cv = $('cv');
+  const ctx = cv.getContext('2d');
+  const S = cv.width / N;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = { soil: css('--soil'), soil2: css('--soil-2'), row: css('--row'), leaf: css('--leaf'), sun: css('--sun'), seed: css('--seed'), danger: css('--danger') };
+
+  const scoreEl = $('score'), overlay = $('overlay'), ovTitle = $('ovTitle'), ovText = $('ovText'), startBtn = $('startBtn');
+  let best = 0;
+
+  const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  let snake, dir, queue, food, score, state = 'idle', last = 0, acc = 0, dead = null;
+
+  function reset() {
+    snake = [[9, 10], [8, 10], [7, 10]];
+    dir = DIRS.right; queue = []; score = 0; dead = null;
+    scoreEl.textContent = 0;
+    placeFood();
+  }
+  function placeFood() {
+    const free = [];
+    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++)
+      if (!snake.some(([sx, sy]) => sx === x && sy === y)) free.push([x, y]);
+    food = free[Math.floor(Math.random() * free.length)];
+  }
+  const speed = () => Math.max(60, 150 - score * 4);
+
+  function turn(name) {
+    const d = DIRS[name]; if (!d) return;
+    if (state === 'idle' || state === 'over') start();
+    const prev = queue.length ? queue[queue.length - 1] : dir;
+    if (d[0] === -prev[0] && d[1] === -prev[1]) return;
+    if (d === prev) return;
+    if (queue.length < 3) queue.push(d);
+  }
+
+  function step() {
+    if (queue.length) dir = queue.shift();
+    const [hx, hy] = snake[0];
+    const nx = hx + dir[0], ny = hy + dir[1];
+    const eating = food && nx === food[0] && ny === food[1];
+    const body = eating ? snake : snake.slice(0, -1);
+    if (nx < 0 || ny < 0 || nx >= N || ny >= N || body.some(([x, y]) => x === nx && y === ny)) {
+      dead = [nx, ny]; return gameOver();
+    }
+    snake.unshift([nx, ny]);
+    if (eating) {
+      score++; scoreEl.textContent = score;
+      if (snake.length === N * N) return gameOver(true);
+      placeFood();
+    } else snake.pop();
+  }
+
+  async function gameOver(win) {
+    state = 'over';
+    const localRecord = score > best;
+    if (localRecord) { best = score; $('best').textContent = best; }
+    ovTitle.textContent = win ? 'Увесь город твій!' : localRecord && score > 0 ? 'Новий рекорд!' : 'Гру закінчено';
+    ovText.textContent = `Зібрано насінин: ${score}.` + (localRecord ? '' : ` Рекорд — ${best}.`)
+      + (me ? '' : ' Увійдіть, щоб результат потрапив до таблиці.');
+    startBtn.textContent = 'Ще раз';
+    overlay.hidden = false; startBtn.focus();
+    draw();
+    if (score > 0) submitScore(score);
+  }
+
+  function start() {
+    reset(); state = 'run'; overlay.hidden = true; last = performance.now(); acc = 0;
+  }
+  function togglePause() {
+    if (state === 'run') {
+      state = 'pause'; ovTitle.textContent = 'Пауза'; ovText.textContent = 'Натисни пробіл або кнопку, щоб продовжити.';
+      startBtn.textContent = 'Далі'; overlay.hidden = false;
+    } else if (state === 'pause') { state = 'run'; overlay.hidden = true; last = performance.now(); }
+  }
+
+  function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
+  function draw() {
+    ctx.fillStyle = C.soil; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (let y = 0; y < N; y++) { if (y % 2) { ctx.fillStyle = C.soil2; ctx.fillRect(0, y * S, cv.width, S); } }
+    ctx.fillStyle = C.row;
+    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) { ctx.beginPath(); ctx.arc(x * S + S / 2, y * S + S / 2, 1.2, 0, 7); ctx.fill(); }
+
+    if (food) {
+      const cx = food[0] * S + S / 2, cy = food[1] * S + S / 2, t = performance.now() / 300;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.sin(t) * 0.15);
+      ctx.fillStyle = C.sun;
+      for (let i = 0; i < 8; i++) { ctx.rotate(Math.PI / 4); ctx.beginPath(); ctx.ellipse(0, -S * 0.3, S * 0.11, S * 0.2, 0, 0, 7); ctx.fill(); }
+      ctx.fillStyle = C.seed; ctx.beginPath(); ctx.arc(0, 0, S * 0.2, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+
+    if (snake) snake.forEach(([x, y], i) => {
+      const k = 1 - i / (snake.length + 6);
+      ctx.globalAlpha = 0.55 + 0.45 * k;
+      ctx.fillStyle = C.leaf;
+      const p = i === 0 ? 1 : 2.5;
+      rr(x * S + p, y * S + p, S - 2 * p, S - 2 * p, S * 0.32);
+    });
+    ctx.globalAlpha = 1;
+    if (snake) {
+      const [hx, hy] = snake[0];
+      const ex = dir[0], ey = dir[1];
+      ctx.fillStyle = C.soil;
+      for (const s of [-1, 1]) {
+        const ox = hx * S + S / 2 + ex * S * 0.15 + -ey * s * S * 0.18;
+        const oy = hy * S + S / 2 + ey * S * 0.15 + ex * s * S * 0.18;
+        ctx.beginPath(); ctx.arc(ox, oy, S * 0.09, 0, 7); ctx.fill();
+      }
+    }
+    if (dead) {
+      ctx.strokeStyle = C.danger; ctx.lineWidth = 3;
+      const [x, y] = dead.map(v => Math.min(Math.max(v, 0), N - 1));
+      ctx.strokeRect(x * S + 2, y * S + 2, S - 4, S - 4);
+    }
+  }
+
+  function loop(now) {
+    if (state === 'run') {
+      acc += now - last;
+      const sp = speed();
+      while (acc >= sp && state === 'run') { acc -= sp; step(); }
+    }
+    last = now;
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', KeyW: 'up', KeyS: 'down', KeyA: 'left', KeyD: 'right' };
+  addEventListener('keydown', e => {
+    if (e.target instanceof HTMLInputElement) return; // не заважати вводу ніка й пароля
+    if (KEYS[e.code]) { e.preventDefault(); if (state !== 'pause') turn(KEYS[e.code]); }
+    else if (e.code === 'Space') { e.preventDefault(); if (state === 'run' || state === 'pause') togglePause(); else start(); }
+  });
+  startBtn.addEventListener('click', () => state === 'pause' ? togglePause() : start());
+  document.querySelectorAll('.pad button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); turn(b.dataset.dir); }));
+
+  let t0 = null;
+  const board = $('board');
+  board.addEventListener('pointerdown', e => { t0 = [e.clientX, e.clientY]; });
+  board.addEventListener('pointerup', e => {
+    if (!t0) return;
+    const dx = e.clientX - t0[0], dy = e.clientY - t0[1]; t0 = null;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+    if (state === 'pause') return;
+    turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  });
+
+  reset();
+  requestAnimationFrame(loop);
+  api('/api/me').then(r => { me = r.user; renderMe(); loadTop(); }).catch(() => loadTop());
+  setInterval(loadTop, 30000);
+})();
+</script>
+</body>
+</html>
